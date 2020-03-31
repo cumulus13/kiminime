@@ -16,7 +16,7 @@ class Application(Frame):
 		if not title:
 			title = "No Image"
 		if title:
-			master.iconbitmap(os.path.join(os.path.dirname(__file__), 'favicon.ico'))
+			master.iconbitmap(os.path.join(os.path.dirname(__file__), 'favicon.png'))
 		else:
 			master.iconbitmap(os.path.join(os.path.dirname(__file__), 'nofavicon.ico'))
 		self.image1 = image1
