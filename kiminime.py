@@ -351,6 +351,8 @@ class kiminime(object):
         return all_data
     
     def get_root_link(self, url):
+        debug(url = url)
+        data = None
         #choice = ['lightgreen', 'lightblue', 'lightmagenta', 'lightred', 'lightcyan']
         while 1:
             try:
@@ -360,8 +362,11 @@ class kiminime(object):
                 if not self.monitor_run:
                     sys.stdout.write(".")
         b = bs(a.content, 'lxml')
-        data = b.find('div', {'class': 'dtl',}).find('a').get('href')
-        debug(data = data)
+        try:
+            data = b.find('div', {'class': 'dtl',}).find('a').get('href')
+            debug(data = data)
+        except:
+            pass
         return data
     
     def download(self, url, confirm = False, download_path = os.getcwd(), saveas = None):
@@ -425,6 +430,8 @@ class kiminime(object):
             elif q == 'x' or q == 'q':
                 print(make_colors("EXIT ! (bye bye)", 'lightwhite', 'lightred', ['blink']))
                 sys.exit()
+            elif q[-1] == 's':
+                return self.navigator(download_path, saveas, confirm, True, str(q), word_insert)
             elif len(q) > 1 and q[-1] == 'd':
                 word_insert = make_colors("[ERROR] Invalid Number !", 'lightwhite', 'lightred')
                 if not q[:-1].isdigit():
@@ -593,32 +600,38 @@ class kiminime(object):
                     return self.navigator(download_path, saveas, confirm, search, query, word_insert)                
                 info = ''
                 link = data.get(int(q[:-1])).get('link')
+                debug(link = link)
                 if 'episode' in link:
                     link = self.get_root_link(link)
-                data_details, episodes = self.get_anime_detail(link)
-                for i in data_details:
-                    if isinstance(data_details.get(i), dict):
-                        info = ", ".join(data_details.get(i).keys())
+                if link:
+                    data_details, episodes = self.get_anime_detail(link)
+                    for i in data_details:
+                        if isinstance(data_details.get(i), dict):
+                            info = ", ".join(data_details.get(i).keys())
+                        else:
+                            info = data_details.get(i)
+                        print(make_colors(i.encode('utf-8'), 'lightcyan') + " " * (12 - len(i)) + ": " + info.encode('utf-8'))
+                                    
+                    import tkimage
+                    from pywget import wget
+                    #import download
+                    from multiprocessing import Process
+                    
+                    thumb_url = data.get(int(q[:-1])).get('thumb')
+                    title = data.get(int(q[:-1])).get('title')
+                    img_download_path = os.path.join(os.getenv('temp'), os.path.split(thumb_url)[1])
+                    #download.download_img(thumb_url, os.path.split(thumb_url)[1], os.getenv('temp'))
+                    wget.download(thumb_url, img_download_path)
+                    if os.path.isfile(img_download_path):
+                        #tkimage.showImages(title, img_download_path)
+                        tx = Process(target=tkimage.showImages, args=(title, img_download_path, ))
+                        tx.start()                                    
                     else:
-                        info = data_details.get(i)
-                    print(make_colors(i, 'lightcyan') + " " * (12 - len(i)) + ": " + info)
-                                
-                import tkimage
-                from pywget import wget
-                #import download
-                from multiprocessing import Process
-                
-                thumb_url = data.get(int(q[:-1])).get('thumb')
-                title = data.get(int(q[:-1])).get('title')
-                img_download_path = os.path.join(os.getenv('temp'), os.path.split(thumb_url)[1])
-                #download.download_img(thumb_url, os.path.split(thumb_url)[1], os.getenv('temp'))
-                wget.download(thumb_url, img_download_path)
-                if os.path.isfile(img_download_path):
-                    #tkimage.showImages(title, img_download_path)
-                    tx = Process(target=tkimage.showImages, args=(title, img_download_path, ))
-                    tx.start()                                    
+                        print(make_colors("No Image Found !", 'lightwhite', 'lightred', ['blink']))
                 else:
-                    print(make_colors("No Image Found !", 'lightwhite', 'lightred', ['blink']))
+                    print(make_colors("No Info", 'lightwhite', 'lightred'))
+                print("\n")
+                qr = raw_input(make_colors("Please Enter to continue", 'lightred', 'lightyellow'))
                 return self.navigator(download_path, saveas, confirm, search, query, word_insert)
         else:
             return self.navigator(download_path, saveas, confirm)
