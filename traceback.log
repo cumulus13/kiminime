@@ -19,3 +19,10 @@ TypeError: unbound method urlparse() must be called with parsex instance as firs
     if not urllib.parse.urlparse(remote).scheme == 'https' and not urllib.parse.urlparse(remote).scheme == 'http' and not urllib.parse.urlparse(remote).scheme == 'ssh':
 AttributeError: 'function' object has no attribute 'urlparse'
 
+2020:04:03 18:52:21:321000 ~ Traceback (most recent call last):
+  File "D:\TOOLS\pyx\gitdate.py", line 750, in commit
+    host = format_git_remote(i.get('url'))
+  File "D:\TOOLS\pyx\gitdate.py", line 362, in format_git_remote
+    if not urllib.parse.urlparse(remote).scheme == 'https' and not urllib.parse.urlparse(remote).scheme == 'http' and not urllib.parse.urlparse(remote).scheme == 'ssh':
+AttributeError: 'function' object has no attribute 'urlparse'
+
