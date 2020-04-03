@@ -1,0 +1,7 @@
+2020:04:03 18:46:58:257000 ~ Traceback (most recent call last):
+  File "D:\TOOLS\pyx\gitdate.py", line 748, in commit
+    host = format_git_remote(i.get('url'))
+  File "D:\TOOLS\pyx\gitdate.py", line 360, in format_git_remote
+    if not urllib.parse.urlparse(remote).scheme == 'https' and not urllib.parse.urlparse(remote).scheme == 'http' and not urllib.parse.urlparse(remote).scheme == 'ssh':
+AttributeError: 'function' object has no attribute 'urlparse'
+
