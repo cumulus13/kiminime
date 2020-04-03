@@ -26,3 +26,8 @@ AttributeError: 'function' object has no attribute 'urlparse'
     if not urllib.parse.urlparse(remote).scheme == 'https' and not urllib.parse.urlparse(remote).scheme == 'http' and not urllib.parse.urlparse(remote).scheme == 'ssh':
 AttributeError: 'function' object has no attribute 'urlparse'
 
+2020:04:03 18:53:51:803000 ~ Traceback (most recent call last):
+  File "D:\TOOLS\pyx\gitdate.py", line 750, in commit
+    if 'https:' in host or 'http:' in host or 'ssh:' in host or 'git:' in host:
+TypeError: argument of type 'bool' is not iterable
+
