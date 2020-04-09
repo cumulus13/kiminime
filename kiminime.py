@@ -208,10 +208,19 @@ class kiminime(object):
         data = {}
         a = self.session.get(url)
         b = bs(a.content, 'lxml')
-        backdrop = b.find('div', {'class': 'ime',}).find('img').get('src')
-        debug(backdrop = backdrop)
-        thumb = b.find('div', {'class': 'thumbss',}).find('img').get('src')
-        debug(thumb = thumb)
+        #debug(b = b, debug = True)
+        backdrop = ''
+        try:
+            backdrop = b.find('div', {'class': 'ime',}).find('img').get('src')
+            debug(backdrop = backdrop)
+        except:
+            pass
+        thumb = ''
+        try:
+            thumb = b.find('div', {'class': 'thumbss',}).find('img').get('src')
+            debug(thumb = thumb)
+        except:
+            pass
         title = b.find('div', {'class': 'infox',}).find('h1', {'class': 'entry-title',})
         if title:
             title = re.split("Subtitle|Indonesia", title.text)[0].strip()
@@ -241,10 +250,14 @@ class kiminime(object):
         debug(div_desc = div_desc)
         if div_desc:
             description = div_desc.find('div', {'class': 'entry-content entry-content-single',}).find_all('p')
-            if len(description[0].text) > 100:
-                description = description[0].text
+            if len(description) > 1:
+                debug(description = description)
+                if len(description[0].text) > 100 and not 'streaming' in description[0].text.lower() or not 'download' in description[0].text.lower():
+                    description = description[0].text
+                else:
+                    description = description[1].text
             else:
-                description = description[1].text
+                description = description[0].text
         data.update({'desc': description,})
         debug(data = data)
         episodes = {}
@@ -278,7 +291,9 @@ class kiminime(object):
                 if not self.monitor_run:
                     sys.stdout.write(".")
         b = bs(a.content, 'lxml')
+        debug(b = b, debug = True)
         div_download = b.find('div', {'class': 'download',})
+        debug(div_download = div_download, debug = True)
         all_div = div_download.find_all('div')
         debug(all_div = all_div)
         v_type = ''
@@ -425,7 +440,11 @@ class kiminime(object):
             if str(q).isdigit():
                 link = data.get(int(q)).get('link')
                 if show_episode:
-                    self.get_download_links(link, download_path, saveas, confirm, True)
+                    if search:
+                        self.get_anime_detail(link)
+                        #sys.exit()
+                    else:
+                        self.get_download_links(link, download_path, saveas, confirm, True)
                     return self.navigator(download_path, saveas, confirm)
             elif q == 'x' or q == 'q':
                 print(make_colors("EXIT ! (bye bye)", 'lightwhite', 'lightred', ['blink']))
@@ -498,7 +517,8 @@ class kiminime(object):
                 q_vtype = ""
                 q_quality = ""
                 q_provider = ""                
-                if q2 and q2.isdigit() and int(q2) <= len(episodes):
+                #if q2 and q2.isdigit() and int(q2) <= len(episodes):
+                if q2 and q2.isdigit():
                     print(make_colors(episodes.get(int(q2)).get('title'), 'lightwhite', 'blue'))
                     self.get_download_links(episodes.get(int(q2)).get('link'), download_path, saveas, confirm, True)
                     return self.navigator(download_path, saveas, confirm, search, query, word_insert)
@@ -510,12 +530,13 @@ class kiminime(object):
                     data_split = re.split(" ", str(q2).strip())
                     if "," in q2:
                         data_split_number = re.split(",", data_split[0])
+                        debug(data_split_number_0 = data_split_number)
                     elif "-" in q2:
                         data_split_number_0 = re.split("-", data_split[0])
                         data_split_number = []
                         for r in range(int(data_split_number_0[0]), int(data_split_number_0[1]) + 1):
                             data_split_number.append(r)
-                    debug(data_split_number = data_split_number)
+                        debug(data_split_number_1= data_split_number)
                     for e in data_split_number:
                         episodes_temp.update({int(e): episodes.get(int(e))})
                     
@@ -580,7 +601,7 @@ class kiminime(object):
                     debug(q_provider = q_provider)
                     debug(q_quality = q_quality)
                     for d in all_download_link:
-                        if all_download_link.get(d).get('vtype') == q_vtype and all_download_link.get(d).get('provider') == q_provider and all_download_link.get(d).get('quality') == q_quality:
+                        if all_download_link.get(d).get('vtype') == q_vtype and q_provider in all_download_link.get(d).get('provider') and all_download_link.get(d).get('quality') == q_quality:
                             download_link = all_download_link.get(d).get('link')
                             debug(download_link = download_link)
                             print(make_colors('download', 'lightwhite', 'lightcyan') + ' ' + make_colors(episodes.get(int(z)).get('title'), 'lightwhite', 'blue'))
