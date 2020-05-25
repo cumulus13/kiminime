@@ -10,3 +10,4 @@
 *.hgtags
 *dist/
 *.egg-info/
+traceback.py

@@ -1,6 +1,8 @@
+#*~*~encoding:utf-8*~*~
 #!c:/SDK/Anaconda2/python.exe
 from __future__ import print_function
 import os, sys
+os.environ.update({'PYTHONIOENCODING':'UTF-8'})
 import requests
 from bs4 import BeautifulSoup as bs
 import argparse
@@ -22,15 +24,19 @@ import re
 import ast
 import time
 import traceback
-
+from configset import configset
+import progressbar
 
 class kiminime(object):
     def __init__(self):
         super(kiminime, self)
         self.url = 'https://kiminime.com/'
+        self.configname = os.path.join(os.path.dirname(__file__), 'kiminime.ini')
+        self.conf = configset(self.configname)
         self.session = requests.session()
         debug(session_proxy = self.session.proxies)
         self.monitor_run = False
+        self.navigator_error = False
     
     def set_proxy(self, proxy):
         proxy_list = {}
@@ -43,16 +49,23 @@ class kiminime(object):
                 else:
                     j = urlparse(i)
                     scheme = j.scheme
+                    debug(scheme = scheme)
+                    if not scheme:
+                        scheme = urlparse(self.url).scheme
+                    debug(scheme = scheme)
                     netloc = j.netloc
+                    if not netloc:
+                        netloc = j.path
                     if "www." in netloc:
                         netloc = netloc.split('www.')[1]
                     #if ":" in netloc:
                         #netloc = netloc.split(":")[0]
-                    proxy_list.update({scheme:scheme + "://" + netloc})
-            return proxy_list
-        return False
-    
-    
+                    proxy_list.update(
+                        {
+                            scheme:scheme + "://" + netloc,
+                            'http': 'http://' + netloc,
+                        })
+        return proxy_list
     
     def makeList(self, alist, ncols, vertically=True, file=None):
         debug()
@@ -76,41 +89,95 @@ class kiminime(object):
             t.add_row(c)
         print(t)
      
-    def home(self, last = 1, url = None):
+    def home(self, last = 1, url = None, max_try = 10, show_process = True, bar = None):
+        error = False
+        data = {}
+        page = {}
         if not url:
             url = self.url
         if url.split('/')[-1].isdigit():
             last = int(url.split('/')[-1])        
         if url.split('/')[-2].isdigit():
             last = int(url.split('/')[-2])
+        n = 1
+        if bar:
+            bar.max_value = max_try * 3
         while 1:
             try:
-                a1 = self.session.get(url, timeout = 3)
+                a1 = self.session.get(url, timeout = max_try *3)
+                n = max_try * 1
+                bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0 ", 'lightwhite', 'lightblue'))
                 break
             except:
-                if not self.monitor_run:
-                    sys.stdout.write(".")
+                if not self.monitor_run and show_process:
+                    if bar:
+                        if n == max_try:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0", 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                            error = True
+                            break
+                        else:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0 ", 'lightwhite', 'lightblue'))
+                            n += 1
+                    else:
+                        sys.stdout.write(".")
+                time.sleep(1)
+        if error:
+            bar.update(max_try *3, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("NO DATA", 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+            return False        
+        #n = 1
         while 1:
             try:
-                a2 = self.session.get(url + 'page/%d/' % (last + 1), timeout = 3)
+                a2 = self.session.get(url + 'page/%d/' % (last + 1), timeout = max_try *3)
+                n = max_try * 2
+                bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
                 break
             except:
-                if not self.monitor_run:
-                    sys.stdout.write(".")
+                if not self.monitor_run and show_process:
+                    if bar:
+                        if n == max_try * 2:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0}".format(last + 1), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                            error = True
+                            break
+                        else:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
+                            n += 1
+                    else:
+                        sys.stdout.write(".")
+                time.sleep(1)
+        #n = 1
         while 1:
             try:
-                a3 = self.session.get(url + 'page/%d/' % (last + 2), timeout = 3)
+                a3 = self.session.get(url + 'page/%d/' % (last + 2), timeout = max_try *3)
+                n = max_try * 3
+                bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
                 break
             except:
-                if not self.monitor_run:
-                    sys.stdout.write(".")
+                if not self.monitor_run and show_process:
+                    if bar:
+                        if n == max_try * 3:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0}".format(last + 2), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                            error = True
+                            break
+                        else:
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
+                            n += 1
+                    else:
+                        sys.stdout.write(".")
+                time.sleep(1)
+        if error:
+            return False
         print("\n")
         b1 = bs(a1.content, 'lxml')
         b2 = bs(a2.content, 'lxml')
         b3 = bs(a3.content, 'lxml')
         class_putih_updateanime1 = b1.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
         class_putih_updateanime2 = b2.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
-        class_putih_updateanime3 = b3.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
+        while 1:
+            try:
+                class_putih_updateanime3 = b3.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
+                break
+            except:
+                self.home(max_try = max_try, show_process = show_episode, bar = bar)
         #print('class_putih_updateanime =', class_putih_updateanime)
         debug(class_putih_updateanime1 = class_putih_updateanime1)
         all_li1 = class_putih_updateanime1.find('ul').find_all('li')
@@ -119,7 +186,7 @@ class kiminime(object):
         all_li = all_li1 + all_li2 + all_li3
         debug(all_li = all_li)
         #print('all_li =', all_li)
-        data = {}
+        #data = {}
         n = 1
         for i in all_li:
             pre_link = i.find('a')
@@ -150,9 +217,13 @@ class kiminime(object):
         
         return data, page, last
         
-    def search(self, query):
+    def search(self, query, max_try = 10, sleep = 1, bar = None):
         params = {'s': query,}
         url = self.url
+        n = 1
+        error = False
+        if bar:
+            bar.max_value = max_try
         while 1:
             try:
                 a = self.session.get(url, timeout = 3, params = params)
@@ -160,6 +231,15 @@ class kiminime(object):
             except:
                 if not self.monitor_run:
                     sys.stdout.write(".")
+                if n == max_try:
+                    error = True
+                    break
+                else:
+                    n += 1
+                time.sleep(sleep)
+        if error:
+            return False
+                
         debug(proxy_set = a.connection.proxy_manager)
 
         print("\n")
@@ -208,7 +288,7 @@ class kiminime(object):
         data = {}
         a = self.session.get(url)
         b = bs(a.content, 'lxml')
-        #debug(b = b, debug = True)
+        #debug(b = b)
         backdrop = ''
         try:
             backdrop = b.find('div', {'class': 'ime',}).find('img').get('src')
@@ -250,14 +330,18 @@ class kiminime(object):
         debug(div_desc = div_desc)
         if div_desc:
             description = div_desc.find('div', {'class': 'entry-content entry-content-single',}).find_all('p')
-            if len(description) > 1:
-                debug(description = description)
-                if len(description[0].text) > 100 and not 'streaming' in description[0].text.lower() or not 'download' in description[0].text.lower():
-                    description = description[0].text
+            debug(description = description)
+            if description:
+                if len(description) > 1:
+                    debug(description = description)
+                    if len(description[0].text) > 100 and not 'streaming' in description[0].text.lower() or not 'download' in description[0].text.lower():
+                        description = description[0].text
+                    else:
+                        description = description[1].text
                 else:
-                    description = description[1].text
+                    description = description[0].text
             else:
-                description = description[0].text
+                description = "No Sinopsis"
         data.update({'desc': description,})
         debug(data = data)
         episodes = {}
@@ -291,9 +375,9 @@ class kiminime(object):
                 if not self.monitor_run:
                     sys.stdout.write(".")
         b = bs(a.content, 'lxml')
-        debug(b = b, debug = True)
+        #debug(b = b)
         div_download = b.find('div', {'class': 'download',})
-        debug(div_download = div_download, debug = True)
+        #debug(div_download = div_download)
         all_div = div_download.find_all('div')
         debug(all_div = all_div)
         v_type = ''
@@ -352,10 +436,12 @@ class kiminime(object):
             q = raw_input(make_colors('Select Number to Download: ', 'lightwhite', 'lightblue'))
             
             warn_1 = make_colors("Please insert a valid number !", 'lightred', 'lightyellow', ['blink']) + "[" + make_colors("enter = refresh", 'lightwhite', 'lightmagenta') + "," + make_colors("x|q = exit", 'lightwhite', 'lightred') + "]: "
-            
+            debug(q = q)
+            debug(all_data = all_data)
+            debug(all_a = all_a)
             if q:
                 if str(q).isdigit():
-                    if len(all_a) <= int(q):
+                    if int(q) <= len(all_data):
                         link = all_data.get(int(q)).get('link')
                         debug(link = link)
                         self.download(link, confirm, download_path, saveas)
@@ -386,6 +472,7 @@ class kiminime(object):
     
     def download(self, url, confirm = False, download_path = os.getcwd(), saveas = None):
         debug(url = url)
+        clipboard.copy(url)
         if 'zippyshare' in urlparse(url).netloc:
             z = zippyshare.zippyshare()
             url_download = z.generate(url)
@@ -405,18 +492,35 @@ class kiminime(object):
     def print_list(self):
         pass
     
-    def navigator(self, download_path = os.getcwd(), saveas = None, confirm = False, search = False, query = None, word_insert = "", q = None, show_episode = True, show_home = True):
+    def navigator(self, download_path = os.getcwd(), saveas = None, confirm = False, search = False, query = None, word_insert = "", q = None, show_episode = True, show_home = True, data = None, page = None, last = None, max_try = 10, show_process = True, bar = None):
         choice = ['lightgreen', 'lightblue', 'lightmagenta', 'lightred']
         if search:
             debug(query = query)
             if not query:
                 words = make_colors("No Search query !", 'lightwhite', 'lightred', ['blink'])
-                return self.navigator(download_path, saveas, confirm, word_insert = words)
+                return self.navigator(download_path, saveas, confirm, word_insert = words, bar = bar)
             else:
-                data, page = self.search(query)
-                debug(data_search = data)
+                check = self.search(query, bar = bar)
+                if not check:
+                    return check
+                else:
+                    data, page = check
+                    debug(data_search = data)
         else:
-            data, page, last = self.home()
+            check = self.home(max_try = max_try, show_process = show_episode, bar = bar)
+            if not check:
+                self.navigator_error = True
+                return check
+            else:
+                data, page, last = check
+        if not data:
+            self.navigator_error = True
+            return False
+        if self.session.proxies:
+            scheme = urlparse(self.url).scheme
+            self.conf.write_config('proxy', scheme, self.session.proxies.get(scheme))
+        if bar:
+            print("\n")
         n = 0
         m = ''
         if show_home:
@@ -445,23 +549,24 @@ class kiminime(object):
                         #sys.exit()
                     else:
                         self.get_download_links(link, download_path, saveas, confirm, True)
-                    return self.navigator(download_path, saveas, confirm)
+                    return self.navigator(download_path, saveas, confirm, bar = bar)
             elif q == 'x' or q == 'q':
-                print(make_colors("EXIT ! (bye bye)", 'lightwhite', 'lightred', ['blink']))
-                sys.exit()
+                #print(make_colors("EXIT ! (bye bye)", 'lightwhite', 'lightred', ['blink']))
+                #sys.exit()
+                return True
             elif q[-1] == 's':
-                return self.navigator(download_path, saveas, confirm, True, str(q), word_insert)
+                return self.navigator(download_path, saveas, confirm, True, str(q), word_insert, bar = bar)
             elif len(q) > 1 and q[-1] == 'd':
                 word_insert = make_colors("[ERROR] Invalid Number !", 'lightwhite', 'lightred')
                 if not q[:-1].isdigit():
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert)                                
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)                                
                 link = data.get(int(q[:-1])).get('link')
                 self.get_download_links(link, download_path, saveas, confirm, True)
-                return self.navigator(download_path, saveas, confirm)                
+                return self.navigator(download_path, saveas, confirm, bar = bar)                
             elif len(q) > 1 and q[-1] == 'i':
                 word_insert = make_colors("[ERROR] Invalid Number !", 'lightwhite', 'lightred')
                 if not q[:-1].isdigit():
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert)                                
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)                                
                 info = ''
                 link = data.get(int(q[:-1])).get('link')
                 if 'episode' in link:
@@ -475,25 +580,27 @@ class kiminime(object):
                     print(make_colors(i, 'lightcyan') + " " * (12 - len(i)) + ": " + info)
                 q1 = raw_input(note)
                 if q1 == 'e':
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, q=q[:-1]+'e')
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, q=q[:-1]+'e', bar = bar)
             
             elif len(q) > 1 and q[-1] == 'e':
                 word_insert = make_colors("[ERROR] Invalid Number !", 'lightwhite', 'lightred')
                 if not q[:-1].isdigit():
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert)                
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)                
                 link = data.get(int(q[:-1])).get('link')
                 if 'episode' in link:
                     link = self.get_root_link(link)
-                data_details, episodes = self.get_anime_detail(link)                
+                data_details, episodes = self.get_anime_detail(link)
+                debug(episodes = episodes)
                 ne = 1
                 nl = (len(episodes) / 12) / 2
                 if nl == 0:
                     nl = 1
                 episodes_keys = episodes.keys()
+                episodes_keys_temp = episodes.keys()
                 debug(episodes_keys = episodes_keys)
-                print(make_colors(data_details.get('title'), 'black', 'lightyellow') + ": ")
+                print(make_colors(data_details.get('title').encode('utf-8'), 'black', 'lightyellow') + ": ")
 
-                for j in episodes_keys:
+                for j in episodes_keys_temp:
                     if len(str(ne)) == 1:
                         if len(episodes) >= 100:
                             j2 = "00" + str(ne) + ". Episode 0" + str(j)
@@ -505,29 +612,36 @@ class kiminime(object):
                         else:
                             j2 = str(ne) + ". Episode " + str(j)
                     ne += 1
-                    index = episodes_keys.index(j)
-                    episodes_keys.remove(j)
-                    episodes_keys.insert(index, j2)
+                    index = episodes_keys_temp.index(j)
+                    episodes_keys_temp.remove(j)
+                    episodes_keys_temp.insert(index, j2)
                 #if show_episode:
-                self.makeList(episodes_keys, nl)
+                debug(episodes_keys = episodes_keys)
+                self.makeList(episodes_keys_temp, nl)
                 string_note_download_all = "download all or separated can with other option. for example you can download with specific vtype, quality and provider code by type: 'a[all] mp4 720 zs', it will download all episode with vtype mp4, quality 720p and provider from zippyshare,  '1,3,5,4 mp4 720 zs', '1-3 mp4 720 zs' or it will ask for vtype,quality,provider automaticly"
                 note_download_all = make_colors(string_note_download_all, 'lightwhite', 'lightblue')
                 print(note_download_all)
+                
                 q2 = raw_input(make_colors("Select number to download", 'lightred', 'lightwhite') + "[" + make_colors("a[ll] = download all", 'black', 'lightyellow') + ", " + make_colors(" x|q = exit", 'lightwhite', 'lightred') + ", " + make_colors("enter = refresh and continue", 'lightwhite', 'lightblue') + "]: ")
+                
                 q_vtype = ""
                 q_quality = ""
                 q_provider = ""                
                 #if q2 and q2.isdigit() and int(q2) <= len(episodes):
                 if q2 and q2.isdigit():
-                    print(make_colors(episodes.get(int(q2)).get('title'), 'lightwhite', 'blue'))
-                    self.get_download_links(episodes.get(int(q2)).get('link'), download_path, saveas, confirm, True)
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert)
+                    list_episode_keys = list(episodes.keys())
+                    print(make_colors(episodes.get(list_episode_keys[int(q2)-1]).get('title').encode('utf-8'), 'lightwhite', 'blue'))
+                    self.get_download_links(episodes.get(list_episode_keys[int(q2)-1]).get('link'), download_path, saveas, confirm, True)
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)
                 elif q2 == 'x' or q2 == 'q':
-                    print(make_colors("Bye bye ...", 'lightred'))
-                    sys.exit()
-                elif "," in q2 or "-":
+                    #print(make_colors("Bye bye ...", 'lightred'))
+                    #sys.exit()
+                    return True
+                elif "," in q2 or "-" in q2:
+                    debug(q2 = q2)
                     episodes_temp = {}
                     data_split = re.split(" ", str(q2).strip())
+                    data_split_number = ''
                     if "," in q2:
                         data_split_number = re.split(",", data_split[0])
                         debug(data_split_number_0 = data_split_number)
@@ -537,8 +651,9 @@ class kiminime(object):
                         for r in range(int(data_split_number_0[0]), int(data_split_number_0[1]) + 1):
                             data_split_number.append(r)
                         debug(data_split_number_1= data_split_number)
-                    for e in data_split_number:
-                        episodes_temp.update({int(e): episodes.get(int(e))})
+                    if data_split_number:
+                        for e in data_split_number:
+                            episodes_temp.update({int(e): episodes.get(int(e))})
                     
                     episodes = episodes_temp
                     episodes_keys = episodes.keys()
@@ -576,49 +691,49 @@ class kiminime(object):
                         q_provider = data_split[3]
                     except:
                         pass
-                if not q_vtype:
-                    q_vtype = 'mp4'
-                if not q_provider:
-                    q_provider = 'zs'
-                if not q_quality:
-                    q_quality = '720'
-                for z in episodes_keys:
-                    debug(episodes = episodes)
-                    debug(episodes_keys = episodes_keys)
-                    all_download_link = []
-                    all_download_link = self.get_download_links(episodes.get(int(z)).get('link'), download_path, saveas, confirm, False)
-                    debug(all_download_link = all_download_link)
-                    #'quality': v_quality,
-                    #'provider': j.text,
-                    #'link': j.get('href'),
-                    #'vtype': v_type,
+                    if not q_vtype:
+                        q_vtype = 'mp4'
+                    if not q_provider:
+                        q_provider = 'zs'
+                    if not q_quality:
+                        q_quality = '720'
+                    for z in episodes_keys:
+                        debug(episodes = episodes)
+                        debug(episodes_keys = episodes_keys)
+                        all_download_link = []
+                        all_download_link = self.get_download_links(episodes.get(int(z)).get('link'), download_path, saveas, confirm, False)
+                        debug(all_download_link = all_download_link)
+                        #'quality': v_quality,
+                        #'provider': j.text,
+                        #'link': j.get('href'),
+                        #'vtype': v_type,
+                        
+                        download_link = ''
+                        q_provider = str(q_provider).upper()
+                        if not str(q_quality).lower()[-1] == 'p':
+                            q_quality = str(q_quality) + "p"                    
+                        debug(q_vtype = q_vtype)
+                        debug(q_provider = q_provider)
+                        debug(q_quality = q_quality)
+                        for d in all_download_link:
+                            if all_download_link.get(d).get('vtype') == q_vtype and q_provider in all_download_link.get(d).get('provider') and all_download_link.get(d).get('quality') == q_quality:
+                                download_link = all_download_link.get(d).get('link')
+                                debug(download_link = download_link)
+                                print(make_colors('download', 'lightwhite', 'lightcyan') + ' ' + make_colors(episodes.get(int(z)).get('title'), 'lightwhite', 'blue'))
+                                self.download(download_link, confirm, download_path, saveas)
+                        if not download_link:
+                            print(make_colors('download [ERROR] (no vtype/provider/quality found)', 'lightwhite', 'lightred') + ' ' + make_colors(episodes.get(int(z)).get('title'), 'lightwhite', 'blue'))
                     
-                    download_link = ''
-                    q_provider = str(q_provider).upper()
-                    if not str(q_quality).lower()[-1] == 'p':
-                        q_quality = str(q_quality) + "p"                    
-                    debug(q_vtype = q_vtype)
-                    debug(q_provider = q_provider)
-                    debug(q_quality = q_quality)
-                    for d in all_download_link:
-                        if all_download_link.get(d).get('vtype') == q_vtype and q_provider in all_download_link.get(d).get('provider') and all_download_link.get(d).get('quality') == q_quality:
-                            download_link = all_download_link.get(d).get('link')
-                            debug(download_link = download_link)
-                            print(make_colors('download', 'lightwhite', 'lightcyan') + ' ' + make_colors(episodes.get(int(z)).get('title'), 'lightwhite', 'blue'))
-                            self.download(download_link, confirm, download_path, saveas)
-                    if not download_link:
-                        print(make_colors('download [ERROR] (no vtype/provider/quality found)', 'lightwhite', 'lightred') + ' ' + make_colors(episodes.get(int(z)).get('title'), 'lightwhite', 'blue'))
-                
-                if "a" in str(q2).strip() or "all" in str(q2).strip():
-                    return self.navigator(download_path, saveas, confirm, False, query, word_insert)
-                elif str(q2).strip() == 'a' or str(q2).strip() == 'all':
-                    return self.navigator(download_path, saveas, confirm, False, query, word_insert)
-                else:
-                    return self.navigator(download_path, saveas, confirm, False, query, word_insert, q, False, False)
+                #if "a" in str(q2).strip() or "all" in str(q2).strip():
+                    #return self.navigator(download_path, saveas, confirm, False, query, word_insert)
+                #if str(q2).strip() == 'a' or str(q2).strip() == 'all':
+                    #return self.navigator(download_path, saveas, confirm, False, query, word_insert)
+                #else:
+                return self.navigator(download_path, saveas, confirm, False, query, word_insert, None, show_episode, show_home, bar = bar)
             elif len(q) > 1 and q[-1] == 't':
                 word_insert = make_colors("[ERROR] Invalid Number !", 'lightwhite', 'lightred')
                 if not q[:-1].isdigit():
-                    return self.navigator(download_path, saveas, confirm, search, query, word_insert)                
+                    return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)                
                 info = ''
                 link = data.get(int(q[:-1])).get('link')
                 debug(link = link)
@@ -653,9 +768,9 @@ class kiminime(object):
                     print(make_colors("No Info", 'lightwhite', 'lightred'))
                 print("\n")
                 qr = raw_input(make_colors("Please Enter to continue", 'lightred', 'lightyellow'))
-                return self.navigator(download_path, saveas, confirm, search, query, word_insert)
+                return self.navigator(download_path, saveas, confirm, search, query, word_insert, bar = bar)
         else:
-            return self.navigator(download_path, saveas, confirm)
+            return self.navigator(download_path, saveas, confirm, bar = bar)
     
     def usage(self):
         parser = argparse.ArgumentParser(formatter_class = argparse.RawTextHelpFormatter)
@@ -665,22 +780,156 @@ class kiminime(object):
         parser.add_argument('-c', '--confirm', action = 'store_true', help = 'Confirm before download (IDM Only)')
         parser.add_argument('-m', '--monitor', action = 'store_true', help = 'Service monitor for update')
         parser.add_argument('-ms', '--monitor-sleep', action = 'store', help = 'Service monitor for update timer', type = int, default = 900)
-        parser.add_argument('-x', '--proxy', help="Via Proxy, example: https://192.168.0.1:3128 https://192.168.0.1:3128 ftp://127.0.0.1:33 or {'http':'127.0.0.1:8080', 'https': '10.5.6.7:5656'}", action='store', nargs='*')
+        parser.add_argument('-t', '--max-try', action = 'store', help = 'Max try connection, default = 10',  default = 10)
+        parser.add_argument('-x', '--proxy', help="Via Proxy, example: https://192.168.0.1:3128 https://192.168.0.1:3128 ftp://127.0.0.1:33 or {'http':'127.0.0.1:8080', 'https': '10.5.6.7:5656'} or type 'auto' for auto proxy", action='store', nargs='*')
+        parser.add_argument('-nv', '--no-verify', action = 'store_true', help = 'Use all type of proxy (http or https)')
+        parser.add_argument('-a', '--all', action = 'store_true', help = 'Use all type of proxy (http or https) to session')
+        parser.add_argument('-http', '--http', action = 'store_true', help = 'Use all type of proxy (http or https) to session and set to http')
+        parser.add_argument('-https', '--https', action = 'store_true', help = 'Use all type of proxy (http or https) to session and set to https')
         if len(sys.argv) == 1:
             parser.print_help()
-            #self.navigator()
-        #else:
+        
+        prefix = '{variables.task} >> {variables.subtask}'
+        variables =  {'task': '--', 'subtask': '--'}
+        max_value = 10
+        
+        proxy = {}
+        scheme = urlparse(self.url).scheme
+        if self.conf.get_config('proxy', scheme):
+            #proxy = {scheme: scheme + "://" + self.conf.get_config('proxy', scheme),}
+            proxy = {scheme: self.conf.get_config('proxy', scheme),}
+            
         args = parser.parse_args()
         if args.proxy:
-            args.proxy = self.set_proxy(args.proxy)
-        debug(args_proxy = args.proxy)
-        self.session.proxies = args.proxy
+            if args.proxy[0] == 'auto':
+                proxy = 'auto'
+            else:
+                debug(args_proxy = args.proxy)
+                proxy = self.set_proxy(args.proxy)
+        debug(proxy = proxy)
+        self.session.proxies = proxy
         if args.search:
-            self.navigator(args.download_path, args.saveas, args.confirm, True, args.search)
+            bar = progressbar.ProgressBar(max_value = max_value, prefix = prefix, variables = variables)
+            self.navigator(args.download_path, args.saveas, args.confirm, True, args.search, bar=bar)
         elif args.monitor:
             self.monitor(args.monitor_sleep)
         else:
-            self.navigator(args.download_path, args.saveas, args.confirm)
+            bar = progressbar.ProgressBar(max_value = max_value, prefix = prefix, variables = variables)
+            if proxy == 'auto':
+                from proxy_tester import proxy_tester
+                import warnings
+                warnings.filterwarnings("ignore")
+                pc = proxy_tester.proxy_tester()
+                n_try = 1
+                list_proxy = pc.getProxyList()
+                while 1:
+                    bar.max_value = len(list_proxy)
+                    c = ''
+                    for i in list_proxy:
+                        debug(use_proxy = i)
+                        proxies = {}
+                        proxy_str = ''
+                        #bar.update(bar.value + 1, task = make_colors("Get Proxy", 'black', 'lightyellow'), subtask = make_colors(proxies.get(scheme), 'lightwhite', 'lightblue') + " ")
+                        if args.no_verify:
+                            if args.all:
+                                if args.https:
+                                    proxies.update({
+                                        'https': 'https://' + str(i.get('ip') + ":" + i.get('port')),
+                                    })
+                                    proxy_str = 'https://' + str(i.get('ip') + ":" + i.get('port'))
+                                elif args.http:
+                                    proxies.update({
+                                        'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),
+                                    })
+                                    proxy_str = 'http://' + str(i.get('ip') + ":" + i.get('port'))                                    
+                                else:
+                                    proxies.update({
+                                        'https': 'https://' + str(i.get('ip') + ":" + i.get('port')),
+                                        'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),
+                                    })
+                                    proxy_str = str(i.get('ip') + ":" + i.get('port'))
+                            else:
+                                if i.get('https') == 'yes':
+                                    if args.http:
+                                        proxies.update({
+                                            'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),
+                                            #'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),
+                                        })
+                                        proxy_str = 'http://' + str(i.get('ip') + ":" + i.get('port'))
+                                    else:
+                                        proxies.update({
+                                            'https': 'https://' + str(i.get('ip') + ":" + i.get('port')),
+                                            #'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),
+                                        })
+                                        proxy_str = 'https://' + str(i.get('ip') + ":" + i.get('port'))
+                                else:
+                                    if args.https:
+                                        proxies.update({'https': 'https://' + str(i.get('ip') + ":" + i.get('port')),})
+                                        proxy_str = 'https://' + str(i.get('ip') + ":" + i.get('port'))                                        
+                                    else:
+                                        proxies.update({'http': 'http://' + str(i.get('ip') + ":" + i.get('port')),})
+                                        proxy_str = 'http://' + str(i.get('ip') + ":" + i.get('port'))
+                            bar.update(n_try, task = make_colors("Check Proxy", 'black', 'lightgreen'), subtask = make_colors(i.get('ip') + ":" + i.get('port'), 'lightwhite', 'lightblue') + " ")
+                            try:
+                                requests.request('GET', self.url, proxies=proxies, verify=False, timeout=3)
+                                debug(proxies = proxies)
+                                #print("\n")
+                                #print(make_colors("Use proxy: ", 'lightyellow') + make_colors(proxies.get(scheme), 'lightwhite', 'blue'))
+                                bar.update(n_try, task = make_colors("Try Proxy", 'lightwhite', 'lightred'), subtask = make_colors(proxy_str, 'lightwhite', 'lightblue') + " ")
+                                self.session.proxies = proxies
+                                c = self.navigator(args.download_path, args.saveas, args.confirm, max_try = 10, bar = bar)
+                                break
+
+                            except:
+                                bar.max_value = len(list_proxy)
+                                bar.value = n_try
+                                #bar.value + 1
+                        
+                            debug(n_try = n_try)
+                            if n_try == len(list_proxy):
+                                break
+                            else:
+                                n_try += 1                            
+                        else:
+                            if scheme == 'https' and i.get('https') == 'yes':
+                                proxies = {scheme: str(scheme + "://" + i.get('ip') + ":" + i.get('port')),}
+                                bar.update(n_try, task = make_colors("Match Proxy", 'black', 'lightgreen'), subtask = make_colors(proxies.get(scheme), 'lightwhite', 'lightblue') + " ")
+                                try:
+                                    requests.request('GET', self.url, proxies=proxies, verify=False, timeout=3)
+                                    #print("\n")
+                                    #print(make_colors("Use proxy: ", 'lightyellow') + make_colors(proxies.get(scheme), 'lightwhite', 'blue'))
+                                    bar.update(n_try, task = make_colors("Try Proxy", 'lightwhite', 'lightred'), subtask = make_colors(proxies.get(scheme), 'lightwhite', 'lightblue') + " ")
+                                    debug(proxies = proxies)
+                                    self.session.proxies = proxies
+                                    c = self.navigator(args.download_path, args.saveas, args.confirm, max_try = 10, bar = bar)
+                                    break
+                                except:
+                                    bar.max_value = len(list_proxy)
+                                    bar.value = n_try
+                            else:
+                                bar.value + 1
+                            debug(n_try = n_try)
+                            if n_try == len(list_proxy):
+                                break
+                            else:
+                                n_try += 1
+                                
+                    if n_try == len(list_proxy):
+                        bar.finish()
+                        print("\n")
+                        print(make_colors("[ERROR] No Proxy is Matched !", 'lightwhite', 'lightred', ['blink']))
+                        break                    
+                    if c:
+                        break   
+            else:
+                debug(proxy = proxy)
+                if proxy:
+                    self.session.proxies = proxy
+                bar.max_value = args.max_try
+                c = self.navigator(args.download_path, args.saveas, args.confirm, max_try = args.max_try, bar = bar)
+                if not c:
+                    sys.exit(make_colors("[ERROR CONNECTION]", 'lightwhite', 'lightred') + make_colors('Try Again !', 'black', 'lightyellow'))
+            
             
     def monitor(self, sleep = 900):
         self.monitor_run = True
