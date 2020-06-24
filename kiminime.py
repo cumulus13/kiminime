@@ -1,6 +1,9 @@
-#*~*~encoding:utf-8*~*~
 #!c:/SDK/Anaconda2/python.exe
+#*~*~encoding:utf-8*~*~
 from __future__ import print_function
+from proxy_tester import proxy_tester
+import warnings
+warnings.filterwarnings("ignore")
 import os, sys
 os.environ.update({'PYTHONIOENCODING':'UTF-8'})
 import requests
@@ -24,8 +27,10 @@ import re
 import ast
 import time
 import traceback
+sys.excepthook = traceback.format_exc
 from configset import configset
 import progressbar
+from pause import pause
 
 class kiminime(object):
     def __init__(self):
@@ -34,6 +39,8 @@ class kiminime(object):
         self.configname = os.path.join(os.path.dirname(__file__), 'kiminime.ini')
         self.conf = configset(self.configname)
         self.session = requests.session()
+        self.headers = {'user-agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.87 Safari/537.36'}
+        self.session.headers.update(self.headers)
         debug(session_proxy = self.session.proxies)
         self.monitor_run = False
         self.navigator_error = False
@@ -93,6 +100,9 @@ class kiminime(object):
         error = False
         data = {}
         page = {}
+        a1 = ''
+        a2 = ''
+        a3 = ''
         if not url:
             url = self.url
         if url.split('/')[-1].isdigit():
@@ -101,11 +111,11 @@ class kiminime(object):
             last = int(url.split('/')[-2])
         n = 1
         if bar:
-            bar.max_value = max_try * 3
+            bar.max_value = max_try
         while 1:
             try:
                 a1 = self.session.get(url, timeout = max_try *3)
-                n = max_try * 1
+                n = max_try
                 bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0 ", 'lightwhite', 'lightblue'))
                 break
             except:
@@ -114,9 +124,10 @@ class kiminime(object):
                         if n == max_try:
                             bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0", 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
                             error = True
+                            n = 1
                             break
                         else:
-                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page 0 ", 'lightwhite', 'lightblue'))
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Page 0 ", 'lightwhite', 'lightblue'))
                             n += 1
                     else:
                         sys.stdout.write(".")
@@ -128,18 +139,19 @@ class kiminime(object):
         while 1:
             try:
                 a2 = self.session.get(url + 'page/%d/' % (last + 1), timeout = max_try *3)
-                n = max_try * 2
+                n = max_try
                 bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
                 break
             except:
                 if not self.monitor_run and show_process:
                     if bar:
-                        if n == max_try * 2:
+                        if n == max_try:
                             bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0}".format(last + 1), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
                             error = True
+                            n = 1
                             break
                         else:
-                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Page {0} ".format(last + 1), 'lightwhite', 'lightred'))
                             n += 1
                     else:
                         sys.stdout.write(".")
@@ -148,18 +160,19 @@ class kiminime(object):
         while 1:
             try:
                 a3 = self.session.get(url + 'page/%d/' % (last + 2), timeout = max_try *3)
-                n = max_try * 3
+                n = max_try
                 bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
                 break
             except:
                 if not self.monitor_run and show_process:
                     if bar:
-                        if n == max_try * 3:
+                        if n == max_try:
                             bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0}".format(last + 2), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
                             error = True
+                            n = 1
                             break
                         else:
-                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Get Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
+                            bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Page {0} ".format(last + 2), 'lightwhite', 'lightred'))
                             n += 1
                     else:
                         sys.stdout.write(".")
@@ -167,22 +180,76 @@ class kiminime(object):
         if error:
             return False
         print("\n")
-        b1 = bs(a1.content, 'lxml')
-        b2 = bs(a2.content, 'lxml')
-        b3 = bs(a3.content, 'lxml')
-        class_putih_updateanime1 = b1.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
-        class_putih_updateanime2 = b2.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
-        while 1:
-            try:
-                class_putih_updateanime3 = b3.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
-                break
-            except:
-                self.home(max_try = max_try, show_process = show_episode, bar = bar)
+        class_putih_updateanime1 = ''
+        class_putih_updateanime2 = ''
+        class_putih_updateanime3 = ''
+        cn = 0
+        cn_max = 3
+        bar.max_value = cn_max
+        b1 = None
+        b2 = None
+        b3 = None
+        if a1:
+            b1 = bs(a1.content, 'lxml')
+            while 1:
+                try:
+                    bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0} ".format("0"), 'lightwhite', 'lightblue'))
+                    class_putih_updateanime1 = b1.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
+                    break
+                except:
+                    if not cn == cn_max:
+                        bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Dev Page {0} ".format("0"), 'lightwhite', 'lightblue'))
+                        cn += 1
+                        self.home(max_try = max_try, show_process = show_process, bar = bar)
+                    else:
+                        cn = 0
+                        bar.update(cn, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0}".format("0"), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                        break
+        if a2:
+            b2 = bs(a2.content, 'lxml')
+            while 1:
+                try:
+                    bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
+                    class_putih_updateanime2 = b2.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
+                    break
+                except:
+                    if not cn == cn_max:
+                        bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Dev Page {0} ".format(last + 1), 'lightwhite', 'lightblue'))
+                        cn += 1
+                        self.home(max_try = max_try, show_process = show_episode, bar = bar)
+                    else:
+                        cn = 0
+                        bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0}".format(last + 1), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                        break
+        if a3:
+            b3 = bs(a3.content, 'lxml')
+            while 1:
+                try:
+                    bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
+                    class_putih_updateanime3 = b3.find('div', {'class': 'dev',}).find('div', {'class': 'putih updateanime',})
+                    break
+                except:
+                    if not cn == cn_max:
+                        bar.update(cn + 1, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Try Dev Page {0} ".format(last + 2), 'lightwhite', 'lightblue'))
+                        cn += 1
+                        self.home(max_try = max_try, show_process = show_episode, bar = bar)
+                    else:
+                        cn = 0
+                        bar.update(n, task = make_colors("Home", 'black', 'lightyellow'), subtask = make_colors("Dev Page {0}".format(last + 2), 'lightwhite', 'lightblue') + " [" + make_colors("ERROR", 'lightwhite', 'lightred') + "] ")
+                        break
+        
+        
         #print('class_putih_updateanime =', class_putih_updateanime)
+        all_li1 = ''
+        all_li2 = ''
+        all_li3 = ''
         debug(class_putih_updateanime1 = class_putih_updateanime1)
-        all_li1 = class_putih_updateanime1.find('ul').find_all('li')
-        all_li2 = class_putih_updateanime2.find('ul').find_all('li')
-        all_li3 = class_putih_updateanime3.find('ul').find_all('li')
+        if class_putih_updateanime1:
+            all_li1 = class_putih_updateanime1.find('ul').find_all('li')
+        if class_putih_updateanime2:
+            all_li2 = class_putih_updateanime2.find('ul').find_all('li')
+        if class_putih_updateanime3:
+            all_li3 = class_putih_updateanime3.find('ul').find_all('li')
         all_li = all_li1 + all_li2 + all_li3
         debug(all_li = all_li)
         #print('all_li =', all_li)
@@ -190,11 +257,15 @@ class kiminime(object):
         n = 1
         for i in all_li:
             pre_link = i.find('a')
+            debug(i = i)
             link = pre_link.get('href')
             debug(link = link)
             thumb = pre_link.find('img').get('src')
             debug(thumb = thumb)
-            title = pre_link.find('img').get('title')
+            title = i.find('h2', {'class':'entry-title'}).find('a')
+            if title:
+                title = title.text
+                #title = re.sub(" Episode.*?$", "", title.text).strip()
             debug(title = title)
             data.update({
                 n:{
@@ -205,15 +276,16 @@ class kiminime(object):
             })
             n += 1
         debug(data = data)
-        div_pagination = b3.find('div', {'class': 'pagination',})
-        page_a = div_pagination.find_all('a')
         page = {}
-        for i in page_a:
-            if i.text.isdigit():
-                page.update({int(str(i.text).strip()): i.get('href'),})
-            else:
-                page.update({str(i.text).strip(): i.get('href'),})
-        debug(page = page)
+        if b3:
+            div_pagination = b3.find('div', {'class': 'pagination',})
+            page_a = div_pagination.find_all('a')
+            for i in page_a:
+                if i.text.isdigit():
+                    page.update({int(str(i.text).strip()): i.get('href'),})
+                else:
+                    page.update({str(i.text).strip(): i.get('href'),})
+            debug(page = page)
         
         return data, page, last
         
@@ -523,13 +595,21 @@ class kiminime(object):
             print("\n")
         n = 0
         m = ''
+        debug(data = data)
+        
         if show_home:
             for i in data:
+                debug(i = i)
                 if len(str(n)) == 1 and not n + 1 == 10:
                     m = '0' + str(n + 1)
                 else:
                     m = str(n + 1)
-                print(m + ". " + make_colors(data.get(i).get('title').encode('utf-8'), 'lightwhite', random.choice(choice)))
+                debug(data_get_i = data.get(i))
+                try:
+                    print(m + ". " + make_colors(data.get(i).get('title').encode('utf-8'), 'lightwhite', random.choice(choice)))
+                except:
+                    debug(data_get_i = data.get(i), debug = True)
+                    pause()
                 n += 1
         if word_insert:
             print(word_insert)
@@ -816,9 +896,6 @@ class kiminime(object):
         else:
             bar = progressbar.ProgressBar(max_value = max_value, prefix = prefix, variables = variables)
             if proxy == 'auto':
-                from proxy_tester import proxy_tester
-                import warnings
-                warnings.filterwarnings("ignore")
                 pc = proxy_tester.proxy_tester()
                 n_try = 1
                 list_proxy = pc.getProxyList()
